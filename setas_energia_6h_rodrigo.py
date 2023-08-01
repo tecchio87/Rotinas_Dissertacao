@@ -91,7 +91,7 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
  
     
     # Adicionar título ao subplot com a data e hora do período de 6 em 6 horas
-    for idx, date in enumerate(dados_janela_6h.index):
+    for idx, date in enumerate(dados_janela_6h.index[:1]):
         print(date)
         
         # Configurar o mapa e suas características     
@@ -107,18 +107,30 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
         # Plotar as setas de energia
         lon_pto1 = list(map(float, lon_pto.values))
         lat_pto1 = list(map(float, lat_pto.values))
-        
+
+        # Limites para as cores do quiver
+        color_min, color_max = -10, 10
+
+        # Define your discrete color levels here
+        levels = np.linspace(color_min, color_max, 11)
+
+        # Create a BoundaryNorm instance to map values to discrete colors
+        norm = colors.TwoSlopeNorm(vmin=color_min, vcenter=0, vmax=color_max)
+
         energy = PPer_pontos.values
+        colors_dia = cmap(norm(energy))
+        
         u_perp, v_perp = converter_direcao(dir_perp)
             
-        ww= ax.quiver(lon_pto1, lat_pto1,  u_perp, v_perp, facecolor=cmap(energy), edgecolor='k',
+        ww= ax.quiver(lon_pto1, lat_pto1,  u_perp, v_perp, facecolor=colors_dia, edgecolor='k',
                             linewidth=1, pivot='tip', scale=18, width=0.005)
         
-        cbar = plt.colorbar(cm.ScalarMappable(norm=plt.Normalize(vmin=-10, vmax=100), cmap=cmap), orientation='horizontal')
+
+        cbar = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), orientation='horizontal')
         cbar.ax.set_xlabel('PPer (kW/m)', fontsize=14, fontweight='bold')
       
         # Salvar a figura em um arquivo separado com o nome baseado na data do evento de ressaca
-        nome_arquivo = f'PPer_{date.strftime("%Y%m%d_%H%M00")}.png'
+        nome_arquivo = f'./figures_setas/PPer_{date.strftime("%Y%m%d_%H%M00")}.png'
         plt.savefig(nome_arquivo, dpi=300)
         print(f'{nome_arquivo} salvo.')
         
@@ -128,30 +140,20 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
 
 def main():
 
-    #os.makedirs("./figures_setas", exist_ok=True)
+    os.makedirs("./figures_setas", exist_ok=True)
 
     # Carregar os dados diários de um arquivo CSV
-    dados_energia = pd.read_csv('/p1-nemo/rtecchio/teste_chico/variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
+    dados_energia = pd.read_csv('./variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
     inicio_janela = dados_energia['time'].iloc[0]
     fim_janela = dados_energia['time'].iloc[-1]
 
-    # figure_dir = "../figures_waves/serie_temporal"
-    # os.makedirs(figure_dir, exist_ok=True)
-    # for variavel in dados_energia.columns[1:-2]:
-    #     plot_serie_temporal(dados_energia, datas_ressaca, variavel, figure_dir)
-
-    # figure_dir = "../figures_waves/serie_temporal_eventos"
-    # os.makedirs(figure_dir, exist_ok=True)
-    # for direcao in ['PPer', 'Ppar']:
-    #     plot_serie_temporal_evento(dados_energia, datas_ressaca, direcao, figure_dir)
-
     # Profundidades para deixar a figura mais bonita
-    ds = xr.open_dataset('/p1-nemo/rtecchio/Dados/GEBCO/gebco_costa_s_se.nc')
+    ds = xr.open_dataset('./gebco_costa_s_se.nc')
     prof2 = ds['elevation'][:]
     prof_filtred = prof2.where(prof2 <= 0)
 
     # Pontos
-    dados_ptos = pd.read_csv('/p1-nemo/rtecchio/teste_chico/pontos_disertacao_normal_final.csv', sep=';', decimal=',')
+    dados_ptos = pd.read_csv('./pontos_disertacao_normal_final.csv', sep=';', decimal=',')
     lat_pto = dados_ptos['lat']
     lon_pto = dados_ptos['lon']
     dir_perp = dados_ptos['DIR_NOR']
