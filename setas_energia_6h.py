@@ -75,27 +75,25 @@ def converter_direcao(dado_direcao, mag=2.5):
     v = mag * np.sin(direcao_radianos)
     return u, v
 
-def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto):
+def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, inicio_janela, fim_janela):
     
     print('plotando setas..')
     dir_perp = dados_ptos['DIR_NOR']
     
     # Filtrar os dados dentro da janela de tempo
-    inicio_janela = pd.to_datetime('2023-01-27T00:00:00')
-    fim_janela = pd.to_datetime('2023-02-01T23:59:59')
     dados_janela = dados_energia[(dados_energia["time"] >= inicio_janela) & (dados_energia["time"] <= fim_janela)]
-    
-    # Agrupar os dados por ponto e período de 6 horas e obter os índices dos valores máximos de PPer
-    indices_maximos = dados_janela.groupby([pd.Grouper(freq='6H'), dados_janela["ponto"]])["PPer"].idxmax()
-    
-    # Obter os valores de PPer para cada ponto e período de 6 horas
-    PPer_pontos = dados_janela.loc[indices_maximos, "PPer"].values
+    dados_janela.index = dados_janela["time"]
+
+    # Pegar de seis em seis horas
+    dados_janela_6h = dados_janela.resample('6H', on='time').first()
+
+    PPer_pontos = dados_janela["PPer"]
     
     # Criar uma figura 
     fig, ax = plt.subplots(figsize=(12, 10), nrows=1, ncols=1, subplot_kw={'projection': ccrs.PlateCarree()})
     
     # Configurar o mapa e suas características
-    ax = fig.add_subplot(111, projection=proj)
+    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
     ax.set_extent([-60,-30,-40,-16])
     map_features(ax)
     Brazil_states(ax)
@@ -123,31 +121,35 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto):
                linewidth=1, pivot='tip', scale=20, width=0.015)
     
     # Adicionar título ao subplot com a data e hora do período de 6 em 6 horas
-    for idx, (date, ponto) in enumerate(indices_maximos.index):
-        titulo = f'Data e Hora: {date:%Y-%m-%d %H:%M:%S} - Ponto {ponto}'
+    for idx, date in enumerate(dados_janela_6h.index):
+        print(date)
+        titulo = f'{date:%Y-%m-%d %H:%M:%S}'
         ax.text(lon_pto1[idx], lat_pto1[idx], titulo, fontsize=8, ha='center', va='bottom', color='black')
     
-    # Adicionar barra de cores para PPer
-    cbar_PPer = fig.add_axes([0.057, 0.05, 0.40, 0.02])  # Posição da colorbar PPer
-    cbper = fig.colorbar(cm.ScalarMappable(norm=norm_dia, cmap=cmap), cax=cbar_PPer, orientation='horizontal')
-    cbper.ax.tick_params(labelsize=8)
-    cbper.set_label('PPer', labelpad=0, fontsize=12, fontweight='bold')
-    
-    plt.subplots_adjust(left=0.02, right=1, bottom=0.15, top=0.90)
-    
-    # Salvar a figura em um arquivo separado com o nome baseado na data do evento de ressaca
-    nome_arquivo = f'P_setas_grid2_{inicio_janela.strftime("%Y%m%d")}.png'
-    plt.savefig(nome_arquivo, dpi=300)
-    
-    # Fechar a figura para liberar memória
-    plt.close(fig)
+        # Adicionar barra de cores para PPer
+        cbar_PPer = fig.add_axes([0.057, 0.05, 0.40, 0.02])  # Posição da colorbar PPer
+        cbper = fig.colorbar(cm.ScalarMappable(norm=norm_dia, cmap=cmap), cax=cbar_PPer, orientation='horizontal')
+        cbper.ax.tick_params(labelsize=8)
+        cbper.set_label('PPer', labelpad=0, fontsize=12, fontweight='bold')
+        
+        plt.subplots_adjust(left=0.02, right=1, bottom=0.15, top=0.90)
+        
+        # Salvar a figura em um arquivo separado com o nome baseado na data do evento de ressaca
+        nome_arquivo = f'./figures_setas/P_setas_grid2_{date.strftime("%Y%m%d_%H%M00")}.png'
+        plt.savefig(nome_arquivo, dpi=300)
+        print(f'{nome_arquivo} salvo.')
+        
+        # Fechar a figura para liberar memória
+        plt.close(fig)
 
 def main():
 
-    #os.makedirs("../figures_waves", exist_ok=True)
+    os.makedirs("./figures_setas", exist_ok=True)
 
     # Carregar os dados diários de um arquivo CSV
-    dados_energia = pd.read_csv('/p1-nemo/rtecchio/teste_chico/variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
+    dados_energia = pd.read_csv('./variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
+    inicio_janela = dados_energia['time'].iloc[0]
+    fim_janela = dados_energia['time'].iloc[-1]
 
     # figure_dir = "../figures_waves/serie_temporal"
     # os.makedirs(figure_dir, exist_ok=True)
@@ -160,18 +162,18 @@ def main():
     #     plot_serie_temporal_evento(dados_energia, datas_ressaca, direcao, figure_dir)
 
     # Profundidades para deixar a figura mais bonita
-    ds = xr.open_dataset('/p1-nemo/rtecchio/Dados/GEBCO/gebco_costa_s_se.nc')
+    ds = xr.open_dataset('./gebco_costa_s_se.nc')
     prof2 = ds['elevation'][:]
     prof_filtred = prof2.where(prof2 <= 0)
 
     # Pontos
-    dados_ptos = pd.read_csv('/p1-nemo/rtecchio/teste_chico/pontos_disertacao_normal_final.csv', sep=';', decimal=',')
+    dados_ptos = pd.read_csv('./pontos_disertacao_normal_final.csv', sep=';', decimal=',')
     lat_pto = dados_ptos['lat']
     lon_pto = dados_ptos['lon']
     dir_perp = dados_ptos['DIR_NOR']
     dir_par = dados_ptos['DIR_PAR']
 
-    plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto)
+    plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, inicio_janela, fim_janela)
 
 if __name__ == '__main__':
     main()
