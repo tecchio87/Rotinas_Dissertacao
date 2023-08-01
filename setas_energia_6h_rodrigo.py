@@ -91,7 +91,7 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
  
     
     # Adicionar título ao subplot com a data e hora do período de 6 em 6 horas
-    for idx, date in enumerate(dados_janela_6h.index[:1]):
+    for idx, date in enumerate(dados_janela_6h.index):
         print(date)
         
         # Configurar o mapa e suas características     
