@@ -108,25 +108,14 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
         lon_pto1 = list(map(float, lon_pto.values))
         lat_pto1 = list(map(float, lat_pto.values))
         
-        # Define your discrete color levels here
-        levels = np.linspace(-10, 50, 11)
-
-        # Create a BoundaryNorm instance to map values to discrete colors
-        cmap = plt.get_cmap("jet")
-        norm = mcolors.BoundaryNorm(levels, ncolors=cmap.N, clip=False)
-
         energy = PPer_pontos.values
-        colors_energy = cmap(norm(energy))
-       
         u_perp, v_perp = converter_direcao(dir_perp)
             
-        ww= ax.quiver(lon_pto1, lat_pto1,  u_perp, v_perp, facecolor=colors_energy, edgecolor='k',
+        ww= ax.quiver(lon_pto1, lat_pto1,  u_perp, v_perp, facecolor=cmap(energy), edgecolor='k',
                             linewidth=1, pivot='tip', scale=18, width=0.005)
         
-        paleta_cores = plt.cm.ScalarMappable(cmap=cmap)
-        paleta_cores.set_array(PPer_pontos)
-        cbar = plt.colorbar(paleta_cores, norm=norm,orientation='horizontal')
-        cbar.set_label('PPer (kW/m)', fontsize=14, fontweight='bold')
+        cbar = plt.colorbar(cm.ScalarMappable(norm=plt.Normalize(vmin=-10, vmax=100), cmap=cmap), orientation='horizontal')
+        cbar.ax.set_xlabel('PPer (kW/m)', fontsize=14, fontweight='bold')
       
         # Salvar a figura em um arquivo separado com o nome baseado na data do evento de ressaca
         nome_arquivo = f'PPer_{date.strftime("%Y%m%d_%H%M00")}.png'
@@ -139,10 +128,10 @@ def plot_mapa_setas(dados_energia, dados_ptos, prof_filtred, lat_pto, lon_pto, i
 
 def main():
 
-    os.makedirs("./figures_setas", exist_ok=True)
+    #os.makedirs("./figures_setas", exist_ok=True)
 
     # Carregar os dados diários de um arquivo CSV
-    dados_energia = pd.read_csv('./variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
+    dados_energia = pd.read_csv('/p1-nemo/rtecchio/teste_chico/variaveis_diarias_ww3.csv', sep=',', parse_dates=["time"])
     inicio_janela = dados_energia['time'].iloc[0]
     fim_janela = dados_energia['time'].iloc[-1]
 
@@ -157,12 +146,12 @@ def main():
     #     plot_serie_temporal_evento(dados_energia, datas_ressaca, direcao, figure_dir)
 
     # Profundidades para deixar a figura mais bonita
-    ds = xr.open_dataset('./gebco_costa_s_se.nc')
+    ds = xr.open_dataset('/p1-nemo/rtecchio/Dados/GEBCO/gebco_costa_s_se.nc')
     prof2 = ds['elevation'][:]
     prof_filtred = prof2.where(prof2 <= 0)
 
     # Pontos
-    dados_ptos = pd.read_csv('./pontos_disertacao_normal_final.csv', sep=';', decimal=',')
+    dados_ptos = pd.read_csv('/p1-nemo/rtecchio/teste_chico/pontos_disertacao_normal_final.csv', sep=';', decimal=',')
     lat_pto = dados_ptos['lat']
     lon_pto = dados_ptos['lon']
     dir_perp = dados_ptos['DIR_NOR']
