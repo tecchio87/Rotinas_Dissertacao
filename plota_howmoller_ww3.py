@@ -50,9 +50,7 @@ def compara_quantis(quantis_climatologia_pontos, da_entrada):
     
     return da_quantiles
  
- 
-
-   
+    
 def hovmoller(da_entrada, **kwargs):
     '''
     variavel: str
@@ -219,17 +217,25 @@ def hovmoller(da_entrada, **kwargs):
    
 
 # Dados climatologia
-dado_climatologia_completa = 'teste_chico/variaveis_dissertacao.csv'
-dados_ww3 = 'teste_chico/variaveis_diarias_ww3.csv'
-
+dado_climatologia_completa = '/p1-nemo/rtecchio/teste_chico/variaveis_dissertacao.csv'
+dados_ww3 = '/p1-nemo/rtecchio/teste_chico/variaveis_diarias_ww3.csv'
 
 df_clim = pd.read_csv(dados_ww3, index_col=0, parse_dates=['time'])#para testar um período menor trocar 
 
+# Defina as datas de início e fim desejadas
 inicio_rodada = df_clim['time'].iloc[0]
 fim_rodada = df_clim['time'].iloc[-1]
 
-dates = [inicio_rodada,inicio_rodada]
+# Converta as datas para strings no formato 'YYYY-MM-DD HH:MM:SS'
+inicio_str = inicio_rodada.strftime('%Y-%m-%d %H:%M:%S')
+fim_str = fim_rodada.strftime('%Y-%m-%d %H:%M:%S')
+
+# Crie a lista 'dates' com as datas de início e fim
+dates = [inicio_str, fim_str]
+
+# Agora você pode utilizar 'dates' na comparação
 dummy = df_clim[(df_clim['time'] >=  dates[0]) & (df_clim['time'] <= dates[1])]
+
 
 for var in ['Hsp','P', 'PPer','Ppar', 'Hsp_per' ]:
     da_entrada = dados_para_xarray(dummy, var)
@@ -273,7 +279,7 @@ for var in  ['Tp','Hsp']:
     plt.legend(bbox_to_anchor=(1, 0.33))
     plt.tight_layout()
     plt.show()
-    #plt.savefig('quantis_pontos_'+var+str(q)+'.png', dpi=500)
+    plt.savefig('quantis_pontos_'+var+str(q)+'.png', dpi=500)
 
 
 
