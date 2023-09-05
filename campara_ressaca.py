@@ -30,83 +30,82 @@ len(dias_ressaca)
 
 #avisos de ressaca
 lista_header=['arquivo','data_aviso','cidade1','cidade2','inicio','validade']
-df_avisos=pd.read_csv('/p1-nemo/rtecchio/ressacas/2021/lista_ressacas_RS_2021.csv',sep=';',names=lista_header, parse_dates=True)
+df_avisos=pd.read_csv('/p1-nemo/rtecchio/ressacas/2021/lista_ressacas_RS_2021.csv',
+                      sep=';',names=lista_header, parse_dates=True, encoding='latin-1')
 
 #Avisos de Ressaca
-df_avisos.index = pd.to_datetime(df_avisos['data_aviso'],dayfirst=True) 
+df_avisos.index = pd.to_datetime(df_avisos['data_aviso'], dayfirst=True) 
 
 #df.columns=lista_header
 
 #pd.to_datetime(df.index) 
 
-ini = df_avisos['inicio'].values 
-fin = df_avisos['validade'].values 
+codigos_inicio_aviso = df_avisos['inicio'].values 
+codigos_fim_aviso = df_avisos['validade'].values 
 
 # CRIA LISTA COM STRING P/ DURACAO DO AVISO
-stini = []
-stfin = [] 
-for dtz in range(len(ini)):
-    stini.append(str(ini[dtz]))
-    stfin.append(str(fin[dtz]))
+strings_data_inicio = []
+strings_data_fim = [] 
+for index_codigo in range(len(codigos_inicio_aviso)):
+    strings_data_inicio.append(str(codigos_inicio_aviso[index_codigo]))
+    strings_data_fim.append(str(codigos_fim_aviso[index_codigo]))
 
 # COLOCA 0 NA FRENTE DA STRING
-for zeron in range(len(stini)):
-    if len(stini[zeron]) <= 5:
-        stini[zeron] = '0' +stini[zeron] 
+for index_string in range(len(strings_data_inicio)):
+    if len(strings_data_inicio[index_string]) <= 5:
+        strings_data_inicio[index_string] = '0' +strings_data_inicio[index_string] 
     else:
-        stini[zeron] = stini[zeron] 
-for zeron in range(len(stfin)):
-    if len(stfin[zeron]) <= 5:
-        stfin[zeron] = '0' +stfin[zeron] 
+        strings_data_inicio[index_string] = strings_data_inicio[index_string] 
+
+    if len(strings_data_fim[index_string]) <= 5:
+        strings_data_fim[index_string] = '0' +strings_data_fim[index_string] 
     else:
-        stfin[zeron] = stfin[zeron] 
+        strings_data_fim[index_string] = strings_data_fim[index_string] 
 
 # CRIA LISTA COM OS DIAS DE AVISO NO FORMATO DATETIME
+inicio_aviso = []
+fim_aviso = [] 
+for index_strings in range(len(strings_data_inicio)):
 
-avisos = []
-validade = [] 
-for zr in range(len(stini)):
-    dia1 = stini[zr]
-    dia2 = stfin[zr]
+    dia1 = strings_data_inicio[index_strings]
+    dia2 = strings_data_fim[index_strings]
     
-    if df_avisos.index.month[zr] < 10:
-        diax =  '0' +str(df_avisos.index.month[zr])+ "-"  + dia1[0:2] + "-" + str(df_avisos.index.year[zr]) + " " + dia1[2:4] + ":" + dia1[4:6] 
-        diax2 = '0' +str(df_avisos.index.month[zr])+ "-"  + dia2[0:2] + "-" + str(df_avisos.index.year[zr]) + " " + dia2[2:4] + ":" + dia2[4:6] 
+    if df_avisos.index.month[index_strings] < 10:
+        diax =  '0' +str(df_avisos.index.month[index_strings])+ "-"  + dia1[0:2] + "-" + str(df_avisos.index.year[index_strings]) + " " + dia1[2:4] + ":" + dia1[4:6] 
+        diax2 = '0' +str(df_avisos.index.month[index_strings])+ "-"  + dia2[0:2] + "-" + str(df_avisos.index.year[index_strings]) + " " + dia2[2:4] + ":" + dia2[4:6] 
     
     else:
-        diax =  str(df_avisos.index.month[zr])+ "-"  + dia1[0:2] + "-" + str(df_avisos.index.year[zr]) + " " + dia1[2:4] + ":" + dia1[4:6] 
-        diax2 = str(df_avisos.index.month[zr])+ "-"  + dia2[0:2] + "-" + str(df_avisos.index.year[zr]) + " " + dia2[2:4] + ":" + dia2[4:6] 
+        diax =  str(df_avisos.index.month[index_strings])+ "-"  + dia1[0:2] + "-" + str(df_avisos.index.year[index_strings]) + " " + dia1[2:4] + ":" + dia1[4:6] 
+        diax2 = str(df_avisos.index.month[index_strings])+ "-"  + dia2[0:2] + "-" + str(df_avisos.index.year[index_strings]) + " " + dia2[2:4] + ":" + dia2[4:6] 
 
     
     date1 = datetime.strptime(diax, '%m-%d-%Y %H:%M')
     date2 = datetime.strptime(diax2, '%m-%d-%Y %H:%M')
     
     # Se o aviso foi emitido no mes anterior da vigencia, adiciona um mes na vigencia
-    if date1.day < df_avisos.index.day[zr]:
-        date1 = date1+ relativedelta(months=1)
+    if date1.day < df_avisos.index.day[index_strings]:
+        date1 = date1 + relativedelta(months=1)
         diax = date1.strftime("%m-%d-%Y %H:%M")
-    if date2.day < df_avisos.index.day[zr]:
-        date2 = date2+ relativedelta(months=1)
+
+    elif date2.day < df_avisos.index.day[index_strings]:
+        date2 = date2 + relativedelta(months=1)
         diax2 = date2.strftime("%m-%d-%Y %H:%M")
         
-    # Se a vigencia inicia num mes anterior ao termino, adiciona um mes nela
-    if date1.day > date2.day:
-        date2 = date2+ relativedelta(months=1)
-        diax2 = date2.strftime("%m-%d-%Y %H:%M")
-        #break
     
     diay = pd.to_datetime(diax)
     diay2 = pd.to_datetime(diax2) 
-    
-    avisos.append(diay) 
-    validade.append(diay2) 
 
+    print(f"Start: {diay}, end: {diay2}")
+
+    
+    inicio_aviso.append(diay) 
+    fim_aviso.append(diay2) 
 
 ndt = []
-for fx in range(len(avisos)):
+for index_aviso in range(len(inicio_aviso)):
     
-    min_date_time = avisos[fx]
-    max_date_time = validade[fx]
+    min_date_time = inicio_aviso[index_aviso]
+    max_date_time = fim_aviso[index_aviso]
     
     new_date_time = pd.date_range(start=min_date_time, end=max_date_time, freq ="H")
     if len(new_date_time) == 0:
@@ -121,6 +120,7 @@ for i in ndt:
     #dnt2.append(pd.Series(i).dt.normalize().unique())
     
 dias_unicos =  pd.Series(pd.Series(novo_index).unique(),name='avisos')
+dias_unicos = dias_unicos.sort_values()
 
 
 matches = []
