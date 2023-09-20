@@ -197,5 +197,6 @@ data_fim = pd.Timestamp('2021-12-31T23:00:00')
 ressaca_waverys_por_ponto = separa_dias_ressaca_waverys(main_dir)
 for ano in range(2020, 2022):
     df_avisos, strings_data_inicio, strings_data_fim = carregar_avisos_de_ressaca_CHM(ano)
+    dias_unicos = pd.Series(pd.date_range(start=df_avisos.index.min(), end=df_avisos.index.max(), freq='D')).dt.normalize()
     matches_por_ponto = calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos)
     df_informacoes = criar_dataframe_informacoes_comparacao(ressaca_waverys_por_ponto, matches_por_ponto)
