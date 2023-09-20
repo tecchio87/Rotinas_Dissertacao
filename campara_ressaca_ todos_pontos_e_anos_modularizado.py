@@ -1,18 +1,12 @@
-import xarray as xr
-import numpy as np
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import os
 
-
-def separa_dias_ressaca_waverys(main_dir):
-    # Crie o caminho completo para o arquivo de dados climatológicos
-    dado_waverys = f'{main_dir}teste_chico/variaveis_dissertacao.csv'
-
-    print('Abrindo dados climatológicos...')
-    df_waverys = pd.read_csv(dado_waverys, index_col=0, parse_dates=['time'])
+def separa_dias_ressaca_waverys(df_waverys, ano):
+    
     # Selecione o período de dados específico
-    dados_ano = df_waverys[(df_waverys.time >= data_inicio) & (df_waverys.time <= data_fim)]
+    dados_ano = df_waverys[df_waverys['time'].dt.year == ano]
 
     # Criar um dicionário para armazenar os dias de ressaca para cada ponto
     ressaca_waverys_por_ponto = {}
@@ -132,13 +126,13 @@ def carregar_avisos_de_ressaca_CHM(ano):
 
 
     # Retorne o DataFrame com os avisos de ressaca
-    return df_avisos, strings_data_inicio, strings_data_fim
+    return dias_unicos
 
-def calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos):
-    matches_por_ponto = {}
+def calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos, ano):
+    matches_por_ponto = {}    
 
     for ponto, df in ressaca_waverys_por_ponto.items():
-        matches_ponto = {}
+        matches_ponto = {}        
 
         for ano, df_ano in df.groupby(df.index.year):
             matches_ano = []
@@ -155,30 +149,24 @@ def calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos):
 
 
 
-def criar_dataframe_informacoes_comparacao(ressaca_waverys_por_ponto, matches_por_ponto):
-    # Calcular o ano atual para criar uma chave única no DataFrame
-    ano_atual = pd.Timestamp.now().year
-
+def criar_dataframe_informacoes_comparacao(ressaca_waverys_por_ponto, matches_por_ponto, ano, dias_unicos):
     # Criar listas para armazenar informações separadamente para cada ponto
     pontos = []
     anos = []  # Lista para armazenar o ano de cada ponto
     dias_de_ressaca = []
-    dias_unicos = []
     matches = []
 
     for ponto, df in ressaca_waverys_por_ponto.items():
         pontos.append(ponto)
         anos.append(df.index.year[0])  # Obtém o ano do primeiro registro
         dias_de_ressaca.append(len(ressaca_waverys_por_ponto[ponto]))
-        dias_unicos.append(len(dias_unicos))
-        matches.append(len(matches_por_ponto[ponto]))
+        matches.append(len(matches_por_ponto[ponto][ano]))
 
     # Criar um DataFrame com as informações
     data = {
-        'Ano': anos,  # Adiciona a coluna do ano
         'Pontos': pontos,
         'Dias_de_Ressaca': dias_de_ressaca,
-        'Dias_Únicos': dias_unicos,
+        'Dias_Únicos': len(dias_unicos),
         'Matches': matches
     }
 
@@ -192,11 +180,24 @@ def criar_dataframe_informacoes_comparacao(ressaca_waverys_por_ponto, matches_po
 
  
 main_dir = '/p1-nemo/rtecchio/'
-data_inicio = pd.Timestamp('2020-01-01T00:00:00')
-data_fim = pd.Timestamp('2021-12-31T23:00:00')
-ressaca_waverys_por_ponto = separa_dias_ressaca_waverys(main_dir)
+
+pasta_comparacao_avisos = os.path.join(main_dir, 'comparacao_avisos')
+os.makedirs(pasta_comparacao_avisos, exist_ok=True)
+
+dado_waverys = f'{main_dir}teste_chico/variaveis_dissertacao.csv'
+print('Abrindo dados climatológicos...')
+df_waverys = pd.read_csv(dado_waverys, index_col=0, parse_dates=['time'])
+
 for ano in range(2020, 2022):
-    df_avisos, strings_data_inicio, strings_data_fim = carregar_avisos_de_ressaca_CHM(ano)
-    dias_unicos = pd.Series(pd.date_range(start=df_avisos.index.min(), end=df_avisos.index.max(), freq='D')).dt.normalize()
-    matches_por_ponto = calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos)
-    df_informacoes = criar_dataframe_informacoes_comparacao(ressaca_waverys_por_ponto, matches_por_ponto)
+    print(f'Processando dados para o ano: {ano}')
+
+    ressaca_waverys_por_ponto = separa_dias_ressaca_waverys(df_waverys, ano)
+
+    dias_unicos = carregar_avisos_de_ressaca_CHM(ano)
+    
+    matches_por_ponto = calcular_matches_por_ponto(ressaca_waverys_por_ponto, dias_unicos, ano)
+
+    df_informacoes = criar_dataframe_informacoes_comparacao(
+        ressaca_waverys_por_ponto, matches_por_ponto, ano, dias_unicos)
+    
+    df_informacoes.to_csv(f'{pasta_comparacao_avisos}/ressaca_waverys_{ano}.csv', index=True)
